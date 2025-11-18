@@ -367,14 +367,58 @@ function adminMiddleware(req, res, next) {
 /*************************************************
  * Admin 登录 & 用户列表
  *************************************************/
-app.post("/admin/login", (req, res) => {
+
+// 抽一个通用的登录处理函数
+function adminLoginHandler(req, res) {
   const { password } = req.body;
+
+  // 简单打印一下方便你调试（上线后可以删掉）
+  console.log("🔐 Admin login attempt, password:", password ? "[RECEIVED]" : "[EMPTY]");
+
   if (password !== ADMIN_PASSWORD) {
+    console.log("❌ Invalid admin password");
     return res.status(401).json({ error: "Invalid admin password" });
   }
 
   const token = jwt.sign({ role: "admin" }, JWT_SECRET, { expiresIn: "1d" });
+  console.log("✅ Admin login success");
   res.json({ adminToken: token });
+}
+
+// 原来的老路由（可以继续保留）
+// 方便你以后用 Postman 或本地调试
+app.post("/admin/login", adminLoginHandler);
+
+// 新增：给前端用的带 /api 前缀的路由
+// 这就是现在前端在调用的 https://ceshipankou.shop/api/admin/login
+app.post("/api/admin/login", adminLoginHandler);
+
+app.get("/admin/users", adminMiddleware, (req, res) => {
+  try {
+    const usersObj = loadUsers();
+    const list = Object.keys(usersObj).map((wallet) => {
+      const u = usersObj[wallet];
+      return {
+        userId: u.userId,
+        wallet: u.wallet,
+        balances: u.balances || {},
+        createdAt: u.createdAt,
+        lastLogin: u.lastLogin,
+        // ⭐ 新增的字段：备注、IP、地理说明、登录次数、控盘、认证状态
+        remark: u.remark || "",
+        registerIp: u.registerIp || "",
+        lastLoginIp: u.lastLoginIp || "",
+        addressLabel: u.addressLabel || "",
+        loginCount: u.loginCount || 0,
+        controlMode: u.controlMode || "normal",
+        verifyStatus: u.verifyStatus || "success",
+      };
+    });
+    res.json(list);
+  } catch (err) {
+    console.error("加载用户列表失败:", err);
+    res.status(500).json({ error: "Failed to load users" });
+  }
 });
 
 app.get("/admin/users", adminMiddleware, (req, res) => {
