@@ -7,6 +7,7 @@ const http = require("http");
 const WebSocket = require("ws");
 const notifier = require("./notifier");
 require("dotenv").config();
+const { pool, initTables } = require("./models/db");
 
 // JWT & Web3
 const jwt = require("jsonwebtoken");
@@ -809,7 +810,7 @@ let binanceWs;
 function connectBinance() {
   console.log("Connecting to Binance WS...");
   binanceWs = new WebSocket(
-    "wss://stream.binance.com:9443/ws/!miniTicker@arr"
+     "wss://mute-cherry-de72.xiaosheng90808.workers.dev/"
   );
 
   binanceWs.on("open", () => console.log("Connected to Binance WebSocket"));
@@ -838,16 +839,26 @@ wss.on("connection", (ws) => {
 connectBinance();
 
 /*************************************************
- * 启动服务器 & 定时结算合约
+ * 启动服务器 & 自动建表
  *************************************************/
+
+(async () => {
+  await initTables();        // ⭐⭐⭐ 在这里自动建表（只运行1次）
+})();
+
+// 启动服务器
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
 );
 
+/*************************************************
+ * 定时自动结算合约
+ *************************************************/
 setInterval(() => {
   contractController
     .settleContracts()
     .then(() => console.log("自动结算完成"))
     .catch((err) => console.error(err));
 }, 10000);
+
