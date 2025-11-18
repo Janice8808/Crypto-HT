@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
-const { WebSocketServer } = require("ws");
+const { WebSocketServer, WebSocket } = require("ws");
 const notifier = require("./notifier");
 require("dotenv").config();
 const { pool, initTables } = require("./models/db");
